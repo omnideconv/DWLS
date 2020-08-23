@@ -1,0 +1,14 @@
+130dd8fd4989e1c656dfa841191efd5d  man/buildSignatureMatrixMAST.Rd
+4aebd026b10df25da00a0f37599c02f2  man/buildSignatureMatrixUsingSeruat.Rd
+49af47002e8e18634f18880050677c35  man/DEAnalysisMAST.Rd
+724737b6f49b3762d7ba51371fdc0e44  man/DEAnalysis.Rd
+3f6e2ae36039f19e05bf2488a50ec0f8  man/findDampeningConstant.Rd
+861b96c7257d2337fcfadc3f45c4ba8f  man/solveDampenedWLSj.Rd
+3d07f8984b20643e27fb1847e89df310  man/solveDampenedWLS.Rd
+0d77079362a33308ae59fd98d8557062  man/solveOLS.Rd
+45d677088cafd2d94ba7923d171a35d1  man/solveSVR.Rd
+b2c80f0961db530d22cf77a9df60c599  man/trimData.Rd
+23490505b963f2c9c804b6dcab5052d8  R/functions.R
+98bc03302dcf2302b7c14b42b7627d81  Changelog
+d13eefd31c6f89bd2e948a69ba45fbf2  DESCRIPTION
+4f48adf0977f4116567ce8b729cd8b34  NAMESPACE

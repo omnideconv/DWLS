@@ -1,0 +1,11 @@
+export(solveOLS, trimData, solveOLSInternal, solveDampenedWLS, solveDampenedWLSj, findDampeningConstant, solveSVR, DEAnalysis, buildSignatureMatrixUsingSeurat, Mean.in.log2space, stat.log2, v.auc, m.auc, DEAnalysisMAST, buildSignatureMatrixMAST)
+
+importFrom("quadprog", solve.QP)
+importFrom("e1071", svm)
+importFrom("Seurat", CreateSeuratObject)
+importFrom("Seurat", SetIdent)
+importFrom("Seurat", FindMarkers)
+importFrom("MAST", FromFlatDF)
+importFrom("MAST", zlm.SingleCellAssay)
+importFrom("MAST", lrTest)
+importFrom("reshape", melt)
