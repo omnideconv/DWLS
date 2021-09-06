@@ -4,6 +4,7 @@ Version: 0.1
 Author: Daphne Tsoucas, Qian Zhu, Rui Dong, Guo-cheng Yuan
 Description: Deconvolution of bulk mRNA data using single-cell RNAseq to provide cell type specific signatures
 Maintainer: Qian Zhu <zqian@jimmy.harvard.edu>
+biocViews:
 Depends: R (>= 2.14.0), reshape (>= 0.8.8), quadprog (>= 1.5), 
         e1071 (>= 1.7.0), Seurat (>= 2.3.4), ROCR (>= 1.0), 
         varhandle (>= 2.0.3), MAST (>= 1.4.1), magrittr
