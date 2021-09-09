@@ -693,3 +693,19 @@ buildSignatureMatrixMAST <- function(scdata,
 
   return(Sig)
 }
+
+#' A wrapper function whether to suppress messages
+#'
+#' @param verbose Whether to produce an output on the console.
+#'
+#' @return A function which will suppress messages or not, depending on the verbose parameter
+#'
+verbose_wrapper <- function(verbose) {
+  return(function(method) {
+    if (!verbose) {
+      suppressMessages(method)
+    } else {
+      method
+    }
+  })
+}
