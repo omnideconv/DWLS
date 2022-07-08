@@ -247,8 +247,8 @@ DEAnalysis <- function(scdata, id, path = NULL, verbose = FALSE) {
   list.DE.group <- as.list(rep(0, length(uniqueIds)))
 
   expr_obj <-
-    Seurat::CreateSeuratObject(raw.data = as.data.frame(scdata), project = "DE")
-  expr_obj2 <- Seurat::SetIdent(expr_obj, ident.use = as.vector(id))
+    Seurat::CreateSeuratObject(counts = as.data.frame(scdata), project = "DE")
+  expr_obj2 <- Seurat::SetIdent(expr_obj, value = as.vector(id))
   if (verbose) {
     print("Calculating differentially expressed genes:")
   }
@@ -308,7 +308,7 @@ buildSignatureMatrixUsingSeurat <- function(scdata,
     DEGenes <-
       rownames(de_group)[intersect(
         which(de_group$p_val_adj < pval.cutoff),
-        which(de_group$avg_logFC > diff.cutoff)
+        which(de_group$avg_log2FC > diff.cutoff)
       )]
     nonMir <- grep("MIR|Mir", DEGenes, invert = TRUE)
     assign(
