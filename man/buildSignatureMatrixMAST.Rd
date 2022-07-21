@@ -30,7 +30,7 @@ buildSignatureMatrixMAST(
 \item{pval.cutoff}{The pValue cutoff}
 }
 \value{
-The computed signature matrix#'
+The computed signature matrix
 }
 \description{
 When path = NULL, the generated files in the processes will not be saved and output.

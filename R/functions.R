@@ -29,6 +29,8 @@ solveOLS <- function(S, B, verbose = FALSE) {
 #' @param verbose Whether to produce an output on the console.
 #'
 #' @return A vector with the cell type numbers for the sample
+#' 
+#' @importFrom quadprog solve.QP
 #'
 #' @export
 solveOLSInternal <- function(S, B, verbose = FALSE) {
@@ -208,6 +210,8 @@ findDampeningConstant <- function(S, B, goldStandard, verbose = FALSE) {
 #'
 #' @return A vector with the cell type proportions for the sample
 #'
+#' @importFrom e1071 svm
+#' 
 #' @export
 solveSVR <- function(S, B, verbose = FALSE) {
   # scaling
@@ -249,6 +253,7 @@ solveSVR <- function(S, B, verbose = FALSE) {
 #'
 #' @return List with the differentially expressed genes for each cell type
 #'
+#' @importFrom Seurat CreateSeuratObject SetIdent FindMarkers
 #' @export
 DEAnalysis <- function(scdata, id, path = NULL, verbose = FALSE) {
   uniqueIds <- unique(id)
@@ -463,6 +468,9 @@ m.auc <- function(data.m, group.v) {
 #' @param verbose Whether to produce an output on the console.
 #'
 #' @return A list with the cell types and their differentially expressed genes
+#' 
+#' @importFrom MAST FromFlatDF zlm lrTest
+#' @importFrom reshape melt
 #'
 #' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
