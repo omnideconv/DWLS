@@ -314,7 +314,7 @@ buildSignatureMatrixUsingSeurat <- function(scdata,
     DEGenes <-
       rownames(de_group)[intersect(
         which(de_group$p_val_adj < pval.cutoff),
-        which(de_group$avg_logFC > diff.cutoff)
+        which(de_group$avg_log2FC > diff.cutoff)
       )]
     nonMir <- grep("MIR|Mir", DEGenes, invert = TRUE)
     assign(
@@ -434,7 +434,7 @@ v.auc <- function(data.v, group.v) {
   return(auc.use)
 }
 
-m.auc <- function(data.m, group.v, ncores) {
+m.auc <- function(data.m, group.v) {
   AUC <- unlist(mclapply(seq(1, nrow(data.m)), function(i) {
     x <- data.m[i,]
     v.auc(x, group.v)
@@ -455,7 +455,7 @@ m.auc <- function(data.m, group.v, ncores) {
 #'
 #' @return A list with the cell types and their differentially expressed genes
 #'
-DEAnalysisMAST <- function(scdata, id, path, ncores, verbose = FALSE) {
+DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
   uniqueIds <- unique(id)
   list_lrTest.table <- as.list(rep(0, length(uniqueIds)))
 
@@ -609,7 +609,7 @@ buildSignatureMatrixMAST <- function(scdata,
 
   # compute differentially expressed genes for each cell type
   list.cluster.table <-
-    DEAnalysisMAST(scdata, id, path, verbose = verbose, ncores = ncores)
+    DEAnalysisMAST(scdata, id, path, verbose = verbose)
 
   # for each cell type, choose genes in which FDR adjusted p-value is less than 0.01 and the
   # estimated fold-change is greater than 0.5
