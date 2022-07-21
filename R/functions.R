@@ -14,6 +14,7 @@ trimData<-function(Signature,bulkData){
 #'
 #' @return A vector with the cell type proportions for the sample
 #'
+#' @export
 solveOLS <- function(S, B, verbose = FALSE) {
   solution <- solveOLSInternal(S, B, verbose)
   return(solution / sum(solution))
@@ -29,6 +30,7 @@ solveOLS <- function(S, B, verbose = FALSE) {
 #'
 #' @return A vector with the cell type numbers for the sample
 #'
+#' @export
 solveOLSInternal <- function(S, B, verbose = FALSE) {
   D <- t(S) %*% S
   d <- t(S) %*% B
@@ -69,6 +71,7 @@ solveOLSInternal <- function(S, B, verbose = FALSE) {
 #'
 #' @return A vector with the cell type numbers for the sample
 #'
+#' @export
 solveDampenedWLS <- function(S, B, verbose = FALSE) {
   # first solve OLS, use this solution to find a starting point for the weights
   solution <- solveOLSInternal(S, B, verbose)
@@ -108,6 +111,7 @@ solveDampenedWLS <- function(S, B, verbose = FALSE) {
 #'
 #' @return A vector with the cell type numbers for the sample
 #'
+#' @export
 solveDampenedWLSj <-
   function(S, B, goldStandard, j, verbose = FALSE) {
     multiplier <- 1 * 2^(j - 1)
@@ -155,6 +159,8 @@ solveDampenedWLSj <-
 #' @param verbose Whether to produce an output on the console
 #'
 #' @return The dampening constant (integer)
+#'
+#' @export
 findDampeningConstant <- function(S, B, goldStandard, verbose = FALSE) {
   solutionsSd <- NULL
   # goldStandard is used to define the weights
@@ -202,6 +208,7 @@ findDampeningConstant <- function(S, B, goldStandard, verbose = FALSE) {
 #'
 #' @return A vector with the cell type proportions for the sample
 #'
+#' @export
 solveSVR <- function(S, B, verbose = FALSE) {
   # scaling
   ub <- max(c(as.vector(S), B)) # upper bound
@@ -242,6 +249,7 @@ solveSVR <- function(S, B, verbose = FALSE) {
 #'
 #' @return List with the differentially expressed genes for each cell type
 #'
+#' @export
 DEAnalysis <- function(scdata, id, path = NULL, verbose = FALSE) {
   uniqueIds <- unique(id)
   list.DE.group <- as.list(rep(0, length(uniqueIds)))
@@ -292,6 +300,7 @@ DEAnalysis <- function(scdata, id, path = NULL, verbose = FALSE) {
 #'
 #' @return The computed signature matrix
 #'
+#' @export
 buildSignatureMatrixUsingSeurat <- function(scdata,
                                             id,
                                             path = NULL,
@@ -455,6 +464,7 @@ m.auc <- function(data.m, group.v) {
 #'
 #' @return A list with the cell types and their differentially expressed genes
 #'
+#' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
   uniqueIds <- unique(id)
   list_lrTest.table <- as.list(rep(0, length(uniqueIds)))
@@ -594,9 +604,10 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
 #' @param pval.cutoff The pValue cutoff
 #'
 #' @return The computed signature matrix
+#'
+#' @export
 #' 
 #' @import parallel
-#'
 buildSignatureMatrixMAST <- function(scdata,
                                      id,
                                      path = NULL,
@@ -607,7 +618,7 @@ buildSignatureMatrixMAST <- function(scdata,
   # number of cores for:
   # m.auc
   # MAST functions
-  parallel::options(mc.cores=ncores)
+  options(mc.cores=ncores)
 
   # compute differentially expressed genes for each cell type
   list.cluster.table <-
@@ -721,6 +732,7 @@ buildSignatureMatrixMAST <- function(scdata,
 #'
 #' @return A function which will suppress messages or not, depending on the verbose parameter
 #'
+#' @export
 verbose_wrapper <- function(verbose) {
   return(function(method) {
     if (!verbose) {
