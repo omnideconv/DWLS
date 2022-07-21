@@ -253,6 +253,12 @@ DEAnalysis <- function(scdata, id, path = NULL, verbose = FALSE) {
     print("Calculating differentially expressed genes:")
   }
   for (i in uniqueIds) {
+    # check if there are more than 3 cells in the current id group
+    if(length(which(expr_obj2@active.ident == i)) < 3){
+      message(paste0('There are fewer than 3 cells in cell type ', i,
+                     '. Please remove this cell type, otherwise no differential expression analysis can be performed using Seurat.'))
+      stop()
+    }
     de_group <-
       Seurat::FindMarkers(
         object = expr_obj2,
@@ -316,6 +322,11 @@ buildSignatureMatrixUsingSeurat <- function(scdata,
       de_group[which(rownames(de_group) %in% DEGenes[nonMir]), ]
     )
     numberofGenes <- c(numberofGenes, length(DEGenes[nonMir]))
+
+    if(numberofGenes == 0){
+      message('Did not find any significant marker genes for cell type ', i,'. Please adjust cutoff parameters.')
+      stop()
+    }
   }
 
   # need to reduce number of genes
@@ -424,9 +435,10 @@ v.auc <- function(data.v, group.v) {
 }
 
 m.auc <- function(data.m, group.v) {
-  AUC <- apply(data.m, 1, function(x) {
+  AUC <- unlist(mclapply(seq(1, nrow(data.m)), function(i) {
+    x <- data.m[i,]
     v.auc(x, group.v)
-  })
+  }))
   AUC[is.na(AUC)] <- 0.5
   return(AUC)
 }
@@ -577,6 +589,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
 #' @param id A Vector of the cell type annotations
 #' @param path OPTIONAL path for saving generated files
 #' @param verbose Whether to produce an output on the console.
+#' @param ncores How many cores to use for DGE analysis
 #' @param diff.cutoff The FC cutoff
 #' @param pval.cutoff The pValue cutoff
 #'
@@ -586,8 +599,14 @@ buildSignatureMatrixMAST <- function(scdata,
                                      id,
                                      path = NULL,
                                      verbose = FALSE,
+                                     ncores = 1,
                                      diff.cutoff = 0.5,
                                      pval.cutoff = 0.01) {
+  # number of cores for:
+  # m.auc
+  # MAST functions
+  options(mc.cores=ncores)
+
   # compute differentially expressed genes for each cell type
   list.cluster.table <-
     DEAnalysisMAST(scdata, id, path, verbose = verbose)
