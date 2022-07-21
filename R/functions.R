@@ -607,7 +607,7 @@ buildSignatureMatrixMAST <- function(scdata,
   # number of cores for:
   # m.auc
   # MAST functions
-  options(mc.cores=ncores)
+  parallel::options(mc.cores=ncores)
 
   # compute differentially expressed genes for each cell type
   list.cluster.table <-
