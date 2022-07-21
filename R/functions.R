@@ -436,7 +436,7 @@ v.auc <- function(data.v, group.v) {
 
 m.auc <- function(data.m, group.v) {
   AUC <- unlist(mclapply(seq(1, nrow(data.m)), function(i) {
-    x <- data.m[i,]
+    x <- unlist(data.m[i,])
     v.auc(x, group.v)
   }))
   AUC[is.na(AUC)] <- 0.5
@@ -594,6 +594,8 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
 #' @param pval.cutoff The pValue cutoff
 #'
 #' @return The computed signature matrix
+#' 
+#' @import parallel
 #'
 buildSignatureMatrixMAST <- function(scdata,
                                      id,
