@@ -607,7 +607,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
 #' @param id A Vector of the cell type annotations
 #' @param path OPTIONAL path for saving generated files
 #' @param verbose Whether to produce an output on the console.
-#' @param ncores How many cores to use for DGE analysis
+#' @param ncores How many cores to use for DGE analysis; NULL to use all available cores-1
 #' @param diff.cutoff The FC cutoff
 #' @param pval.cutoff The pValue cutoff
 #'
@@ -626,6 +626,9 @@ buildSignatureMatrixMAST <- function(scdata,
   # number of cores for:
   # m.auc
   # MAST functions
+  if(is.null(ncores)){
+    ncores <- parallel::detectCores()-1
+  }
   options(mc.cores=ncores)
 
   # compute differentially expressed genes for each cell type

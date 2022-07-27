@@ -23,7 +23,7 @@ buildSignatureMatrixMAST(
 
 \item{verbose}{Whether to produce an output on the console.}
 
-\item{ncores}{How many cores to use for DGE analysis}
+\item{ncores}{How many cores to use for DGE analysis; NULL to use all available cores-1}
 
 \item{diff.cutoff}{The FC cutoff}
 
