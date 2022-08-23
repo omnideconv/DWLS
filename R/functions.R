@@ -417,30 +417,18 @@ Mean.in.log2space <- function(x, pseudo.count) {
 }
 
 stat.log2 <- function(data.m, group.v, pseudo.count) {
-  # data.m=data.used.log2
-  log2.mean.r <-
-    stats::aggregate(t(data.m), list(as.character(group.v)), function(x) {
-      Mean.in.log2space(x, pseudo.count)
-    })
+  log2.mean.r <- data.table(t(data.m))[, lapply(.SD, Mean.in.log2space, pseudo.count), by = list(as.character(group.v))]
   log2.mean.r <- t(log2.mean.r)
   colnames(log2.mean.r) <-
-    paste("mean.group", log2.mean.r[1, ], sep = "")
+    paste("log2.mean.group", log2.mean.r[1, ], sep = "")
   log2.mean.r <- log2.mean.r[-1, ]
   log2.mean.r <- as.data.frame(log2.mean.r)
   log2.mean.r <- varhandle::unfactor(log2.mean.r) # from varhandle
   log2.mean.r[, 1] <- as.numeric(log2.mean.r[, 1])
   log2.mean.r[, 2] <- as.numeric(log2.mean.r[, 2])
-  log2_foldchange <- log2.mean.r$mean.group1 - log2.mean.r$mean.group0
-  results <- data.frame(cbind(
-    log2.mean.r$mean.group0,
-    log2.mean.r$mean.group1,
-    log2_foldchange
-  ))
-  colnames(results) <- c("log2.mean.group0", "log2.mean.group1", "log2_fc")
-  rownames(results) <- rownames(log2.mean.r)
-  return(results)
+  log2.mean.r[, "log2_fc"] <- log2.mean.r$log2.mean.group1 - log2.mean.r$log2.mean.group0
+  return(log2.mean.r)
 }
-
 v.auc <- function(data.v, group.v) {
   prediction.use <- ROCR::prediction(data.v, group.v, 0:1)
   perf.use <- ROCR::performance(prediction.use, "auc")
@@ -457,6 +445,90 @@ m.auc <- function(data.m, group.v) {
   return(AUC)
 }
 
+# Functions for MAST
+
+createLrTestTable <- function(i,de, zlm.lr_pvalue) {
+  lrTest.table <-
+    merge(zlm.lr_pvalue, de, by.x = "primerid", by.y = "row.names")
+  colnames(lrTest.table) <-
+    c(
+      "gene",
+      "test.type",
+      "p_value",
+      paste("log2.mean.", "Cluster_Other", sep = ""),
+      paste("log2.mean.", i, sep = ""),
+      "log2fold_change",
+      "Auc"
+    )
+  return (lrTest.table[rev(order(lrTest.table$Auc)), ])
+}
+saveMastResult <- function(path, cluster_lrTest.table, i) {
+  if (!is.null(path)) {
+    utils::write.csv(cluster_lrTest.table,
+                     file = paste(path, "/", i, "_lr_test.csv", sep = "")
+    )
+    save(cluster_lrTest.table,
+         file = paste(path, "/", i, "_mist.RData", sep = "")
+    )
+  }
+}
+
+doMastZlm <- function(verbose, vbeta.1) {
+  zlm.output <-
+    verbose_wrapper(verbose)(MAST::zlm(
+      ~Population,
+      vbeta.1,
+      method = "bayesglm",
+      ebayes = TRUE
+    ))
+  if (verbose) {
+    methods::show(zlm.output)
+    coefAndCI <- summary(zlm.output, logFC = TRUE)
+    print(coefAndCI)
+  }
+  return (zlm.output)
+}
+
+doLrTest <- function(verbose, zlm.output) {
+  zlm.lr <-
+    verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
+  zlm.lr_pvalue <- data.table::melt(zlm.lr[, , "Pr(>Chisq)"])
+  zlm.lr_pvalue <-
+    zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
+  return (zlm.lr_pvalue)
+}
+
+createDataForMAST <- function(verbose, counts, groups) {
+  data_for_MIST <-
+    verbose_wrapper(verbose)(as.data.frame(cbind(
+      rep(rownames(counts), dim(counts)[2]),
+      data.table::melt(counts),
+      rep(groups, each = dim(counts)[1]),
+      rep(1, dim(counts)[1] * dim(counts)[2])
+    )))
+  colnames(data_for_MIST) <- c(
+    "gene",
+    "Subject.ID",
+    "Et",
+    "Population",
+    "Number.of.Cells"
+  )
+  vbeta.fa <-
+    verbose_wrapper(verbose)(
+      MAST::FromFlatDF(
+        data_for_MIST,
+        idvars = c("Subject.ID"),
+        primerid = "gene",
+        measurement = "Et",
+        ncells = "Number.of.Cells",
+        geneid = "gene",
+        cellvars = c("Number.of.Cells", "Population"),
+        phenovars = c("Population"),
+        id = "vbeta all"
+      )
+    )
+  return(subset(vbeta.fa, Number.of.Cells == 1))
+}
 
 #' Performing DE analysis using mast
 #'
@@ -470,7 +542,7 @@ m.auc <- function(data.m, group.v) {
 #' @return A list with the cell types and their differentially expressed genes
 #' 
 #' @importFrom MAST FromFlatDF zlm lrTest
-#' @importFrom reshape melt
+#' @importFrom data.table melt //TODO discuss how to define new packages
 #'
 #' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
@@ -484,8 +556,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
   for (i in uniqueIds) {
     cells.symbol.list2 <- colnames(data.used.log2)[which(id == i)]
     cells.coord.list2 <- match(cells.symbol.list2, colnames(data.used.log2))
-    cells.symbol.list1 <- colnames(data.used.log2)[which(id != i)]
-    cells.coord.list1 <- match(cells.symbol.list1, colnames(data.used.log2))
+    cells.coord.list1 <- c(1:length(id))[-cells.coord.list2]
     data.used.log2.ordered <-
       cbind(data.used.log2[, cells.coord.list1], data.used.log2[, cells.coord.list2])
     group.v <-
@@ -497,108 +568,68 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
     bigtable <- data.frame(cbind(log2.stat.result, Auc))
 
     de <- bigtable[bigtable$log2_fc > diff.cutoff, ]
-    if (verbose) {
-      dim(de)
-    }
+
+    if (verbose) dim(de)
+
+    data.1 <- data.used.log2[, cells.coord.list1, drop = FALSE]
+    data.2 <- data.used.log2[, cells.coord.list2, drop = FALSE]
+
+    groups <- c(
+      rep("Cluster_Other", length(cells.coord.list1)),
+      rep(i, length(cells.coord.list2))
+    )
+    groups <- as.character(groups)
+
     if (dim(de)[1] > 1) {
-      data.1 <- data.used.log2[, cells.coord.list1, drop = FALSE]
-      data.2 <- data.used.log2[, cells.coord.list2, drop = FALSE]
       genes.list <- rownames(de)
-      log2fold_change <- cbind(genes.list, de$log2_fc)
-      colnames(log2fold_change) <- c("gene.name", "log2fold_change")
+      # TODO discuss what those  next two lines are doing
+      #log2fold_change <- cbind(genes.list, de$log2_fc)
+      #colnames(log2fold_change) <- c("gene.name", "log2fold_change")
       counts <- as.data.frame(cbind(data.1[genes.list, ], data.2[genes.list, ]))
-      groups <- c(
-        rep("Cluster_Other", length(cells.coord.list1)),
-        rep(i, length(cells.coord.list2))
-      )
-      groups <- as.character(groups)
-      data_for_MIST <-
-        verbose_wrapper(verbose)(as.data.frame(cbind(
-          rep(rownames(counts), dim(counts)[2]),
-          reshape::melt(counts),
-          rep(groups, each = dim(counts)[1]),
-          rep(1, dim(counts)[1] * dim(counts)[2])
-        )))
-      colnames(data_for_MIST) <- c(
-        "gene",
-        "Subject.ID",
-        "Et",
-        "Population",
-        "Number.of.Cells"
-      )
-      vbeta <- data_for_MIST
-      vbeta.fa <-
-        verbose_wrapper(verbose)(
-          MAST::FromFlatDF(
-            vbeta,
-            idvars = c("Subject.ID"),
-            primerid = "gene",
-            measurement = "Et",
-            ncells = "Number.of.Cells",
-            geneid = "gene",
-            cellvars = c("Number.of.Cells", "Population"),
-            phenovars = c("Population"),
-            id = "vbeta all"
-          )
-        )
-      vbeta.1 <- subset(vbeta.fa, Number.of.Cells == 1)
+      vbeta.1 <- createDataForMAST(verbose, counts, groups)
       # .3 mast
-      # utils::head(SummarizedExperiment::colData(vbeta.1)) ??
-      zlm.output <-
-        verbose_wrapper(verbose)(MAST::zlm(
-          ~Population,
-          vbeta.1,
-          method = "bayesglm",
-          ebayes = TRUE
-        ))
-      if (verbose) {
-        methods::show(zlm.output)
-        coefAndCI <- summary(zlm.output, logFC = TRUE)
-        print(coefAndCI)
-      }
-      zlm.lr <-
-        verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
-      zlm.lr_pvalue <- reshape::melt(zlm.lr[, , "Pr(>Chisq)"])
-      zlm.lr_pvalue <-
-        zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
-
-
-
-      lrTest.table <-
-        merge(zlm.lr_pvalue, de, by.x = "primerid", by.y = "row.names")
-      colnames(lrTest.table) <-
-        c(
-          "gene",
-          "test.type",
-          "p_value",
-          paste("log2.mean.", "Cluster_Other", sep = ""),
-          paste("log2.mean.", i, sep = ""),
-          "log2fold_change",
-          "Auc"
-        )
-      cluster_lrTest.table <-
-        lrTest.table[rev(order(lrTest.table$Auc)), ]
+      zlm.output <- doMastZlm(verbose, vbeta.1)
+      zlm.lr_pvalue <- doLrTest(verbose, zlm.output)
+      cluster_lrTest.table <- createLrTestTable(i, de, zlm.lr_pvalue)
 
       # . 4 save results
 
       index <- which(uniqueIds == i)
       list_lrTest.table[[index]] <- cluster_lrTest.table
 
-      if (!is.null(path)) {
-        utils::write.csv(cluster_lrTest.table,
-                         file = paste(path, "/", i, "_lr_test.csv", sep = "")
-        )
-        save(cluster_lrTest.table,
-             file = paste(path, "/", i, "_mist.RData", sep = "")
-        )
-      }
+      saveMastResult(path, cluster_lrTest.table, i)
     }
   }
 
   return(list_lrTest.table)
 }
 
-
+makeSubsetSignature <- function(g, uniqueIds, numberofGenes, clusterLrTestTableList, scdata, id) {
+  Genes <- c()
+  j <- 1
+  for (i in uniqueIds) {
+    if (numberofGenes[j] > 0) {
+      temp <- clusterLrTestTableList[[i]]
+      temp <- temp[order(temp$log2fold_change, decreasing = TRUE), ]
+      Genes <-
+        c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
+    }
+    j <- j + 1
+  }
+  Genes <- unique(Genes)
+  # make signature matrix
+  ExprSubset <- scdata[Genes, , drop = FALSE]
+  Sig <- NULL
+  for (i in uniqueIds) {
+    Sig <-
+      cbind(Sig, (apply(ExprSubset, 1, function(y) {
+        mean(y[which(id == i)])
+      })))
+  }
+  colnames(Sig) <- uniqueIds
+  rownames(Sig) <- Genes
+  return (Sig)
+}
 #' #' Building the signature matrix using mast
 #'
 #' When path = NULL, the generated files in the processes will not be saved and output.
@@ -614,7 +645,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
 #' @return The computed signature matrix
 #'
 #' @export
-#' 
+#'
 #' @import parallel
 buildSignatureMatrixMAST <- function(scdata,
                                      id,
@@ -639,6 +670,7 @@ buildSignatureMatrixMAST <- function(scdata,
   # estimated fold-change is greater than 0.5
   numberofGenes <- c()
   uniqueIds <- unique(id)
+  cluster_lrTest.table.list <- as.list(rep(0, length(uniqueIds)))
   for (i in uniqueIds) {
     if (file.exists(paste(path, "/", i, "_MIST.RData", sep = ""))) {
       load(file = paste(path, "/", i, "_MIST.RData", sep = ""))
@@ -662,73 +694,18 @@ buildSignatureMatrixMAST <- function(scdata,
 
     # because Mir gene is usually not accurate
     nonMir <- grep("MIR|Mir", DEGenes, invert = TRUE)
-    assign(
-      paste("cluster_lrTest.table.", i, sep = ""),
-      cluster_lrTest.table[which(cluster_lrTest.table$gene %in% DEGenes[nonMir]), ]
-    )
+    cluster_lrTest.table.list[[i]] <- cluster_lrTest.table[which(cluster_lrTest.table$gene %in% DEGenes[nonMir]), ]
     numberofGenes <- c(numberofGenes, length(DEGenes[nonMir]))
   }
-
-
   # need to reduce number of genes
   # for each subset, order significant genes by decreasing fold change,
   # choose between 50 and 200 genes
   # for each, iterate and choose matrix with lowest condition number
-  conditionNumbers <- c()
-  for (g in 50:200) {
-    Genes <- c()
-    j <- 1
-    for (i in uniqueIds) {
-      if (numberofGenes[j] > 0) {
-        temp <- paste("cluster_lrTest.table.", i, sep = "")
-        temp <- get(temp)
-        temp <-
-          temp[order(temp$log2fold_change, decreasing = TRUE), ]
-        Genes <-
-          c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
-      }
-      j <- j + 1
-    }
-    Genes <- unique(Genes)
-    # make signature matrix
-    ExprSubset <- scdata[Genes, , drop = FALSE]
-    Sig <- NULL
-    for (i in uniqueIds) {
-      Sig <-
-        cbind(Sig, (apply(ExprSubset, 1, function(y) {
-          mean(y[which(id == i)])
-        })))
-    }
-    colnames(Sig) <- uniqueIds
-    conditionNumbers <- c(conditionNumbers, kappa(Sig))
-  }
+  conditionNumbers <- mclapply(c(50:200), makeSubsetSignature, uniqueIds, numberofGenes, cluster_lrTest.table.list, scdata, id)
+  conditionNumbers <- mclapply(conditionNumbers, kappa)
   # g is optimal gene number
-  g <- which.min(conditionNumbers) + min(49, numberofGenes - 1)
-  Genes <- c()
-  j <- 1
-  for (i in uniqueIds) {
-    if (numberofGenes[j] > 0) {
-      temp <- paste("cluster_lrTest.table.", i, sep = "")
-      temp <- get(temp)
-      temp <- temp[order(temp$log2fold_change, decreasing = TRUE), ]
-      Genes <-
-        c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
-    }
-    j <- j + 1
-  }
-  Genes <- unique(Genes)
-  ExprSubset <- scdata[Genes, , drop = FALSE]
-  Sig <- NULL
-  for (i in uniqueIds) {
-    Sig <-
-      cbind(Sig, (apply(ExprSubset, 1, function(y) {
-        mean(y[which(id == i)])
-      })))
-  }
-
-  colnames(Sig) <- uniqueIds
-  rownames(Sig) <- Genes
-
+  g <- which.min(unlist(conditionNumbers)) + min(49, numberofGenes - 1)
+  Sig <- makeSubsetSignature(g, uniqueIds, numberofGenes, cluster_lrTest.table.list, scdata, id)
   if (!is.null(path)) {
     save(Sig, file = paste(path, "/Sig.RData", sep = ""))
   }
@@ -736,7 +713,6 @@ buildSignatureMatrixMAST <- function(scdata,
 
   return(Sig)
 }
-
 #' A wrapper function whether to suppress messages
 #'
 #' @param verbose Whether to produce an output on the console.
