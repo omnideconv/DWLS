@@ -542,7 +542,7 @@ createDataForMAST <- function(verbose, counts, groups) {
 #' @return A list with the cell types and their differentially expressed genes
 #' 
 #' @importFrom MAST FromFlatDF zlm lrTest
-#' @importFrom data.table melt //TODO discuss how to define new packages
+#' @importFrom data.table melt
 #'
 #' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
@@ -582,7 +582,6 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
 
     if (dim(de)[1] > 1) {
       genes.list <- rownames(de)
-      # TODO discuss what those  next two lines are doing
       #log2fold_change <- cbind(genes.list, de$log2_fc)
       #colnames(log2fold_change) <- c("gene.name", "log2fold_change")
       counts <- as.data.frame(cbind(data.1[genes.list, ], data.2[genes.list, ]))
