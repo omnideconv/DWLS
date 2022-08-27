@@ -498,36 +498,11 @@ doLrTest <- function(verbose, zlm.output) {
   return (zlm.lr_pvalue)
 }
 
-createDataForMAST <- function(verbose, counts, groups) {
-  data_for_MIST <-
-    verbose_wrapper(verbose)(as.data.frame(cbind(
-      rep(rownames(counts), dim(counts)[2]),
-      data.table::melt(counts),
-      rep(groups, each = dim(counts)[1]),
-      rep(1, dim(counts)[1] * dim(counts)[2])
-    )))
-  colnames(data_for_MIST) <- c(
-    "gene",
-    "Subject.ID",
-    "Et",
-    "Population",
-    "Number.of.Cells"
-  )
-  vbeta.fa <-
-    verbose_wrapper(verbose)(
-      MAST::FromFlatDF(
-        data_for_MIST,
-        idvars = c("Subject.ID"),
-        primerid = "gene",
-        measurement = "Et",
-        ncells = "Number.of.Cells",
-        geneid = "gene",
-        cellvars = c("Number.of.Cells", "Population"),
-        phenovars = c("Population"),
-        id = "vbeta all"
-      )
-    )
-  return(subset(vbeta.fa, Number.of.Cells == 1))
+createDataForMAST <- function(verbose, counts, groups, matrix) {
+  fdat2 <- data.frame(primerid=rownames(counts))
+  cdat2 <- data.frame(wellKey=rownames(t(counts)), Population=groups, ncells=1)
+  vbeta.fa <- MAST::FromMatrix(data.matrix(counts), cdat2, fdat2)
+  return(vbeta.fa)
 }
 
 #' Performing DE analysis using mast
@@ -603,6 +578,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
   return(list_lrTest.table)
 }
 
+
 makeSubsetSignature <- function(g, uniqueIds, numberofGenes, clusterLrTestTableList, scdata, id) {
   Genes <- c()
   j <- 1
@@ -652,7 +628,8 @@ buildSignatureMatrixMAST <- function(scdata,
                                      verbose = FALSE,
                                      ncores = 1,
                                      diff.cutoff = 0.5,
-                                     pval.cutoff = 0.01) {
+                                     pval.cutoff = 0.01
+                                     ) {
   # number of cores for:
   # m.auc
   # MAST functions
@@ -728,3 +705,7 @@ verbose_wrapper <- function(verbose) {
     }
   })
 }
+
+
+
+
