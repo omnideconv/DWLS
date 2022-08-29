@@ -516,7 +516,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #'
 #' @return A list with the cell types and their differentially expressed genes
 #' 
-#' @importFrom MAST FromFlatDF zlm lrTest
+#' @importFrom MAST FromMatrix zlm lrTest
 #' @importFrom data.table melt
 #'
 #' @export
