@@ -754,6 +754,7 @@ verbose_wrapper <- function(verbose) {
   })
 }
 
+#' A second version of the stat.log2 function that is optimized for higher processing speed
 stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
   log2.mean.r <- data.table(t(data.m))[, lapply(.SD, Mean.in.log2space, pseudo.count), by = list(as.character(group.v))]
   log2.mean.r <- t(log2.mean.r)
@@ -828,7 +829,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
   return(vbeta.fa)
 }
 
-#' Performing DE analysis using mast
+#' Performing DE analysis using mast, optimized for higher processing speed
 #'
 #' When path = NULL, the generated files in the processes will not be saved and output.
 #'
@@ -928,7 +929,7 @@ makeSubsetSignature <- function(g, uniqueIds, numberofGenes, clusterLrTestTableL
   rownames(Sig) <- Genes
   return (Sig)
 }
-#' #' Building the signature matrix using mast
+#' #' Building the signature matrix using mast, changed from the original function to use less processing time
 #'
 #' When path = NULL, the generated files in the processes will not be saved and output.
 #'
