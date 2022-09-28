@@ -756,7 +756,7 @@ verbose_wrapper <- function(verbose) {
 
 #' A second version of the stat.log2 function that is optimized for higher processing speed
 stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
-  log2.mean.r <- data.table(t(data.m))[, lapply(.SD, Mean.in.log2space, pseudo.count), by = list(as.character(group.v))]
+  log2.mean.r <- data.table::data.table(t(data.m))[, lapply(.SD, Mean.in.log2space, pseudo.count), by = list(as.character(group.v))]
   log2.mean.r <- t(log2.mean.r)
   colnames(log2.mean.r) <-
     paste("log2.mean.group", log2.mean.r[1, ], sep = "")
