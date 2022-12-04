@@ -781,10 +781,9 @@ createLrTestTable <- function(i,de, zlm.lr_pvalue) {
       "p_value",
       paste("log2.mean.", "Cluster_Other", sep = ""),
       paste("log2.mean.", i, sep = ""),
-      "log2fold_change",
-      "Auc"
+      "log2fold_change"
     )
-  return (lrTest.table[rev(order(lrTest.table$Auc)), ])
+  return (lrTest.table)
 }
 saveMastResult <- function(path, cluster_lrTest.table, i) {
   if (!is.null(path)) {
@@ -863,10 +862,8 @@ DEAnalysisMASTOptimized <- function(scdata, id, path, verbose = FALSE) {
     # ouput
     log2.stat.result <-
       stat.log2.optimized(data.used.log2.ordered, group.v, pseudo.count)
-    Auc <- m.auc(data.used.log2.ordered, group.v)
-    bigtable <- data.frame(cbind(log2.stat.result, Auc))
 
-    de <- bigtable[bigtable$log2_fc > diff.cutoff, ]
+    de <- log2.stat.result[log2.stat.result$log2_fc > diff.cutoff, ]
 
     if (verbose) dim(de)
 
