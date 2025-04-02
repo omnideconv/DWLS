@@ -815,7 +815,7 @@ doMastZlm <- function(verbose, vbeta.1) {
 doLrTest <- function(verbose, zlm.output) {
   zlm.lr <-
     verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
-  zlm.lr_pvalue <- data.table::melt(zlm.lr[, , "Pr(>Chisq)"])
+  zlm.lr_pvalue <- reshape2::melt(zlm.lr[, , "Pr(>Chisq)"])
   zlm.lr_pvalue <-
     zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
   return (zlm.lr_pvalue)
@@ -840,7 +840,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #' @return A list with the cell types and their differentially expressed genes
 #' 
 #' @importFrom MAST FromMatrix zlm lrTest
-#' @importFrom data.table melt
+#' @importFrom reshape2 melt
 #'
 #' @export
 DEAnalysisMASTOptimized <- function(scdata, id, path, verbose = FALSE) {
