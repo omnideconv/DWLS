@@ -1,7 +1,7 @@
 Package: DWLS
 Type: Package
 Title: Dampened Weighted Least Square for Deconvolution of Bulk mRNA Data
-Version: 0.5.1
+Version: 0.5.2
 Author: Daphne Tsoucas, Qian Zhu, Rui Dong, Guo-cheng Yuan
 Maintainer: Qian Zhu <zqian@jimmy.harvard.edu>
 biocViews:
