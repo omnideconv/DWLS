@@ -211,7 +211,7 @@ findDampeningConstant <- function(S, B, goldStandard, verbose = FALSE) {
 #' @return A vector with the cell type proportions for the sample
 #'
 #' @importFrom e1071 svm
-#' 
+#'
 #' @export
 solveSVR <- function(S, B, verbose = FALSE) {
   # scaling
@@ -468,7 +468,7 @@ m.auc <- function(data.m, group.v) {
 #' @param verbose Whether to produce an output on the console.
 #'
 #' @return A list with the cell types and their differentially expressed genes
-#' 
+#'
 #' @importFrom MAST FromFlatDF zlm lrTest
 #' @importFrom reshape2 melt
 #'
@@ -614,7 +614,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
 #' @return The computed signature matrix
 #'
 #' @export
-#' 
+#'
 #' @import parallel
 buildSignatureMatrixMAST <- function(scdata,
                                      id,
@@ -753,3 +753,264 @@ verbose_wrapper <- function(verbose) {
     }
   })
 }
+
+#' A second version of the stat.log2 function that is optimized for higher processing speed
+stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
+  log2.mean.r <- data.table::data.table(t(data.m))[, lapply(.SD, Mean.in.log2space, pseudo.count), by = list(as.character(group.v))]
+  log2.mean.r <- t(log2.mean.r)
+  colnames(log2.mean.r) <-
+    paste("log2.mean.group", log2.mean.r[1, ], sep = "")
+  log2.mean.r <- log2.mean.r[-1, ]
+  log2.mean.r <- as.data.frame(log2.mean.r)
+  log2.mean.r <- varhandle::unfactor(log2.mean.r) # from varhandle
+  log2.mean.r[, 1] <- as.numeric(log2.mean.r[, 1])
+  log2.mean.r[, 2] <- as.numeric(log2.mean.r[, 2])
+  log2.mean.r[, "log2_fc"] <- log2.mean.r$log2.mean.group1 - log2.mean.r$log2.mean.group0
+  return(log2.mean.r)
+}
+
+# Functions for MAST
+
+createLrTestTable <- function(i,de, zlm.lr_pvalue) {
+  lrTest.table <-
+    merge(zlm.lr_pvalue, de, by.x = "primerid", by.y = "row.names")
+  colnames(lrTest.table) <-
+    c(
+      "gene",
+      "test.type",
+      "p_value",
+      paste("log2.mean.", "Cluster_Other", sep = ""),
+      paste("log2.mean.", i, sep = ""),
+      "log2fold_change"
+    )
+  return (lrTest.table)
+}
+saveMastResult <- function(path, cluster_lrTest.table, i) {
+  if (!is.null(path)) {
+    utils::write.csv(cluster_lrTest.table,
+                     file = paste(path, "/", i, "_lr_test.csv", sep = "")
+    )
+    save(cluster_lrTest.table,
+         file = paste(path, "/", i, "_mist.RData", sep = "")
+    )
+  }
+}
+
+doMastZlm <- function(verbose, vbeta.1) {
+  zlm.output <-
+    verbose_wrapper(verbose)(MAST::zlm(
+      ~Population,
+      vbeta.1,
+      method = "bayesglm",
+      ebayes = TRUE
+    ))
+  if (verbose) {
+    methods::show(zlm.output)
+    coefAndCI <- summary(zlm.output, logFC = TRUE)
+    print(coefAndCI)
+  }
+  return (zlm.output)
+}
+
+doLrTest <- function(verbose, zlm.output) {
+  zlm.lr <-
+    verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
+  zlm.lr_pvalue <- data.table::melt(zlm.lr[, , "Pr(>Chisq)"])
+  zlm.lr_pvalue <-
+    zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
+  return (zlm.lr_pvalue)
+}
+
+createDataForMAST <- function(verbose, counts, groups, matrix) {
+  fdat2 <- data.frame(primerid=rownames(counts))
+  cdat2 <- data.frame(wellKey=rownames(t(counts)), Population=groups, ncells=1)
+  vbeta.fa <- MAST::FromMatrix(data.matrix(counts), cdat2, fdat2)
+  return(vbeta.fa)
+}
+
+#' Performing DE analysis using mast, optimized for higher processing speed
+#'
+#' When path = NULL, the generated files in the processes will not be saved and output.
+#'
+#' @param scdata The single cell data matrix
+#' @param id A Vector of the cell type annotations
+#' @param path OPTIONAL path for saving generated files
+#' @param verbose Whether to produce an output on the console.
+#'
+#' @return A list with the cell types and their differentially expressed genes
+#' 
+#' @importFrom MAST FromMatrix zlm lrTest
+#' @importFrom data.table melt
+#'
+#' @export
+DEAnalysisMASTOptimized <- function(scdata, id, path, verbose = FALSE) {
+  uniqueIds <- unique(id)
+  list_lrTest.table <- as.list(rep(0, length(uniqueIds)))
+
+  pseudo.count <- 0.1
+  data.used.log2 <- log2(scdata + pseudo.count)
+  colnames(data.used.log2) <- make.unique(colnames(data.used.log2))
+  diff.cutoff <- 0.5
+  for (i in uniqueIds) {
+    cells.symbol.list2 <- colnames(data.used.log2)[which(id == i)]
+    cells.coord.list2 <- match(cells.symbol.list2, colnames(data.used.log2))
+    cells.coord.list1 <- c(1:length(id))[-cells.coord.list2]
+    data.used.log2.ordered <-
+      cbind(data.used.log2[, cells.coord.list1], data.used.log2[, cells.coord.list2])
+    group.v <-
+      c(rep(0, length(cells.coord.list1)), rep(1, length(cells.coord.list2)))
+    # ouput
+    log2.stat.result <-
+      stat.log2.optimized(data.used.log2.ordered, group.v, pseudo.count)
+
+    de <- log2.stat.result[log2.stat.result$log2_fc > diff.cutoff, ]
+
+    if (verbose) dim(de)
+
+    data.1 <- data.used.log2[, cells.coord.list1, drop = FALSE]
+    data.2 <- data.used.log2[, cells.coord.list2, drop = FALSE]
+
+    groups <- c(
+      rep("Cluster_Other", length(cells.coord.list1)),
+      rep(i, length(cells.coord.list2))
+    )
+    groups <- as.character(groups)
+
+    if (dim(de)[1] > 1) {
+      genes.list <- rownames(de)
+      #log2fold_change <- cbind(genes.list, de$log2_fc)
+      #colnames(log2fold_change) <- c("gene.name", "log2fold_change")
+      counts <- as.data.frame(cbind(data.1[genes.list, ], data.2[genes.list, ]))
+      vbeta.1 <- createDataForMAST(verbose, counts, groups)
+      # .3 mast
+      zlm.output <- doMastZlm(verbose, vbeta.1)
+      zlm.lr_pvalue <- doLrTest(verbose, zlm.output)
+      cluster_lrTest.table <- createLrTestTable(i, de, zlm.lr_pvalue)
+
+      # . 4 save results
+
+      index <- which(uniqueIds == i)
+      list_lrTest.table[[index]] <- cluster_lrTest.table
+
+      saveMastResult(path, cluster_lrTest.table, i)
+    }
+  }
+
+  return(list_lrTest.table)
+}
+
+
+makeSubsetSignature <- function(g, uniqueIds, numberofGenes, clusterLrTestTableList, scdata, id) {
+  Genes <- c()
+  j <- 1
+  for (i in uniqueIds) {
+    if (numberofGenes[j] > 0) {
+      temp <- clusterLrTestTableList[[i]]
+      temp <- temp[order(temp$log2fold_change, decreasing = TRUE), ]
+      Genes <-
+        c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
+    }
+    j <- j + 1
+  }
+  Genes <- unique(Genes)
+  # make signature matrix
+  ExprSubset <- scdata[Genes, , drop = FALSE]
+  Sig <- NULL
+  for (i in uniqueIds) {
+    Sig <-
+      cbind(Sig, (apply(ExprSubset, 1, function(y) {
+        mean(y[which(id == i)])
+      })))
+  }
+  colnames(Sig) <- uniqueIds
+  rownames(Sig) <- Genes
+  return (Sig)
+}
+#' #' Building the signature matrix using mast, changed from the original function to use less processing time
+#'
+#' When path = NULL, the generated files in the processes will not be saved and output.
+#'
+#' @param scdata The single cell data matrix
+#' @param id A Vector of the cell type annotations
+#' @param path OPTIONAL path for saving generated files
+#' @param verbose Whether to produce an output on the console.
+#' @param ncores How many cores to use for DGE analysis; NULL to use all available cores-1
+#' @param diff.cutoff The FC cutoff
+#' @param pval.cutoff The pValue cutoff
+#'
+#' @return The computed signature matrix
+#'
+#' @export
+#'
+#' @import parallel
+buildSignatureMatrixMASTOptimized <- function(scdata,
+                                     id,
+                                     path = NULL,
+                                     verbose = FALSE,
+                                     ncores = 1,
+                                     diff.cutoff = 0.5,
+                                     pval.cutoff = 0.01
+                                     ) {
+  # number of cores for:
+  # m.auc
+  # MAST functions
+  if(is.null(ncores)){
+    ncores <- parallel::detectCores()-1
+  }
+  options(mc.cores=ncores)
+
+  # compute differentially expressed genes for each cell type
+  list.cluster.table <-
+    DEAnalysisMASTOptimized(scdata, id, path, verbose = verbose)
+
+  # for each cell type, choose genes in which FDR adjusted p-value is less than 0.01 and the
+  # estimated fold-change is greater than 0.5
+  numberofGenes <- c()
+  uniqueIds <- unique(id)
+  cluster_lrTest.table.list <- as.list(rep(0, length(uniqueIds)))
+  for (i in uniqueIds) {
+    if (file.exists(paste(path, "/", i, "_MIST.RData", sep = ""))) {
+      load(file = paste(path, "/", i, "_MIST.RData", sep = ""))
+    } else {
+      index <- which(uniqueIds == i)
+      cluster_lrTest.table <- list.cluster.table[[index]]
+    }
+    pvalue_adjusted <-
+      stats::p.adjust(
+        cluster_lrTest.table[, 3],
+        method = "fdr",
+        n = length(cluster_lrTest.table[, 3])
+      )
+    cluster_lrTest.table <-
+      cbind(cluster_lrTest.table, pvalue_adjusted)
+    DEGenes <-
+      cluster_lrTest.table$gene[intersect(
+        which(pvalue_adjusted < pval.cutoff),
+        which(cluster_lrTest.table$log2fold_change > diff.cutoff)
+      )]
+
+    # because Mir gene is usually not accurate
+    nonMir <- grep("MIR|Mir", DEGenes, invert = TRUE)
+    cluster_lrTest.table.list[[i]] <- cluster_lrTest.table[which(cluster_lrTest.table$gene %in% DEGenes[nonMir]), ]
+    numberofGenes <- c(numberofGenes, length(DEGenes[nonMir]))
+  }
+  # need to reduce number of genes
+  # for each subset, order significant genes by decreasing fold change,
+  # choose between 50 and 200 genes
+  # for each, iterate and choose matrix with lowest condition number
+  conditionNumbers <- mclapply(c(50:200), makeSubsetSignature, uniqueIds, numberofGenes, cluster_lrTest.table.list, scdata, id)
+  conditionNumbers <- mclapply(conditionNumbers, kappa)
+  # g is optimal gene number
+  g <- which.min(unlist(conditionNumbers)) + min(49, numberofGenes - 1)
+  Sig <- makeSubsetSignature(g, uniqueIds, numberofGenes, cluster_lrTest.table.list, scdata, id)
+  if (!is.null(path)) {
+    save(Sig, file = paste(path, "/Sig.RData", sep = ""))
+  }
+
+
+  return(Sig)
+}
+
+
+
+
