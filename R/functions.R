@@ -470,7 +470,7 @@ m.auc <- function(data.m, group.v) {
 #' @return A list with the cell types and their differentially expressed genes
 #' 
 #' @importFrom MAST FromFlatDF zlm lrTest
-#' @importFrom reshape melt
+#' @importFrom reshape2 melt
 #'
 #' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
@@ -515,7 +515,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
       data_for_MIST <-
         verbose_wrapper(verbose)(as.data.frame(cbind(
           rep(rownames(counts), dim(counts)[2]),
-          reshape::melt(counts),
+          reshape2::melt(counts),
           rep(groups, each = dim(counts)[1]),
           rep(1, dim(counts)[1] * dim(counts)[2])
         )))
@@ -558,7 +558,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
       }
       zlm.lr <-
         verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
-      zlm.lr_pvalue <- reshape::melt(zlm.lr[, , "Pr(>Chisq)"])
+      zlm.lr_pvalue <- reshape2::melt(zlm.lr[, , "Pr(>Chisq)"])
       zlm.lr_pvalue <-
         zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
 
