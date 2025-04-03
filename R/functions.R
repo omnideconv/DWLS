@@ -758,7 +758,16 @@ verbose_wrapper <- function(verbose) {
 stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
   data.m.t <- data.table::data.table(t(data.m))
   data.m.t$group <- unlist(group.v)
-  log2.mean.r <- data.m.t[, lapply(.SD, Mean.in.log2space, pseudo.count), by = group]
+  
+  # for some reason, this next line did not work in the Docker container (I was debugging for 1 day :( )
+  #log2.mean.r <- data.m.t[, lapply(.SD, Mean.in.log2space, pseudo.count), by = group]
+  
+  # replaced line above with dplyr (not as efficient as data.table, but still better than original implementation) 
+  log2.mean.r <- data.m.t %>%
+    dplyr::group_by(group) %>%
+    dplyr::summarise(dplyr::across(dplyr::everything(), ~ Mean.in.log2space(.x, pseudo.count))) %>%
+    data.table::as.data.table()
+  
   log2.mean.r <- t(log2.mean.r)
   colnames(log2.mean.r) <-
     paste("log2.mean.group", log2.mean.r[1, ], sep = "")
