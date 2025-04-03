@@ -852,6 +852,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #' 
 #' @importFrom MAST FromMatrix zlm lrTest
 #' @importFrom reshape2 melt
+#' @importFrom magrittr %>%
 #'
 #' @export
 DEAnalysisMASTOptimized <- function(scdata, id, path, verbose = FALSE) {
