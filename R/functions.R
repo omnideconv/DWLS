@@ -936,8 +936,8 @@ makeSubsetSignature <- function(g, uniqueIds, numberofGenes, clusterLrTestTableL
     if (numberofGenes[j] > 0) {
       temp <- clusterLrTestTableList[[i]]
       temp <- temp[order(temp$log2fold_change, decreasing = TRUE), ]
-      Genes <-
-        c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
+      Genes <- c(Genes, temp$gene[1:min(g, numberofGenes[j])])
+        #c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
     }
     j <- j + 1
   }
