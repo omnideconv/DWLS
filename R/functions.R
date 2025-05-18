@@ -792,8 +792,9 @@ stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
 # Functions for MAST
 
 createLrTestTable <- function(i,de, zlm.lr_pvalue) {
-  lrTest.table <-
-    merge(zlm.lr_pvalue, de, by.x = "primerid", by.y = "row.names")
+
+ de$primerid <- rownames(de)  
+lrTest.table <- merge(zlm.lr_pvalue, de, by = "primerid")	
   colnames(lrTest.table) <-
     c(
       "gene",
