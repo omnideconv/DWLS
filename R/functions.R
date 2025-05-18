@@ -693,8 +693,9 @@ buildSignatureMatrixMAST <- function(scdata,
         temp <- get(temp)
         temp <-
           temp[order(temp$log2fold_change, decreasing = TRUE), ]
-        Genes <-
-          c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
+        #Genes <-
+        #  c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
+	Genes <- c(Genes, temp$gene[1:min(g, numberofGenes[j])])
       }
       j <- j + 1
     }
@@ -720,8 +721,9 @@ buildSignatureMatrixMAST <- function(scdata,
       temp <- paste("cluster_lrTest.table.", i, sep = "")
       temp <- get(temp)
       temp <- temp[order(temp$log2fold_change, decreasing = TRUE), ]
-      Genes <-
-        c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
+      #Genes <-
+        #c(Genes, varhandle::unfactor(temp$gene[1:min(g, numberofGenes[j])]))
+      Genes <- c(Genes, temp$gene[1:min(g, numberofGenes[j])])
     }
     j <- j + 1
   }
