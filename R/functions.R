@@ -470,7 +470,7 @@ m.auc <- function(data.m, group.v) {
 #' @return A list with the cell types and their differentially expressed genes
 #'
 #' @importFrom MAST FromFlatDF zlm lrTest
-#' 
+#' @import data.table
 #'
 #' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
@@ -866,6 +866,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #' @importFrom MAST FromMatrix zlm lrTest
 #' 
 #' @importFrom magrittr %>%
+#' @import data.table
 #'
 #' @export
 DEAnalysisMASTOptimized <- function(scdata, id, path, verbose = FALSE) {
