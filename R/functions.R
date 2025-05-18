@@ -572,9 +572,9 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
         zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
 
 
-
+      de$primerid <- rownames(de)
       lrTest.table <-
-        merge(zlm.lr_pvalue, de, by.x = "primerid", by.y = "row.names")
+        merge(zlm.lr_pvalue, de, by = "primerid")
       colnames(lrTest.table) <-
         c(
           "gene",
