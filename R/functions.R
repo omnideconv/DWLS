@@ -470,7 +470,7 @@ m.auc <- function(data.m, group.v) {
 #' @return A list with the cell types and their differentially expressed genes
 #'
 #' @importFrom MAST FromFlatDF zlm lrTest
-#' @importFrom reshape2 melt
+#' 
 #'
 #' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
@@ -512,13 +512,18 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
         rep(i, length(cells.coord.list2))
       )
       groups <- as.character(groups)
-      data_for_MIST <-
-        verbose_wrapper(verbose)(as.data.frame(cbind(
-          rep(rownames(counts), dim(counts)[2]),
-          reshape2::melt(counts),
-          rep(groups, each = dim(counts)[1]),
-          rep(1, dim(counts)[1] * dim(counts)[2])
-        )))
+      counts_dt <- as.data.table(counts, keep.rownames = "gene")
+      melted_counts <- melt(counts_dt, id.vars = "gene", variable.name = "Subject.ID", value.name = "Et")
+
+      data_for_MIST <- verbose_wrapper(verbose)(
+           data.frame(
+           gene = melted_counts$gene,
+           Subject.ID = melted_counts$Subject.ID,
+           Et = melted_counts$Et,
+           Population = rep(groups, each = nrow(counts)),
+           Number.of.Cells = 1
+       )
+      )
       colnames(data_for_MIST) <- c(
         "gene",
         "Subject.ID",
@@ -558,7 +563,11 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
       }
       zlm.lr <-
         verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
-      zlm.lr_pvalue <- reshape2::melt(zlm.lr[, , "Pr(>Chisq)"])
+	    
+      tmp <- as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
+      setnames(tmp, c("primerid", "test.type", "p_value"))
+      zlm.lr_pvalue <- tmp
+      
       zlm.lr_pvalue <-
         zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
 
@@ -826,7 +835,11 @@ doMastZlm <- function(verbose, vbeta.1) {
 doLrTest <- function(verbose, zlm.output) {
   zlm.lr <-
     verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
-  zlm.lr_pvalue <- reshape2::melt(zlm.lr[, , "Pr(>Chisq)"])
+	    
+   tmp <- as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
+   setnames(tmp, c("primerid", "test.type", "p_value"))
+   zlm.lr_pvalue <- tmp
+	
   zlm.lr_pvalue <-
     zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
   return (zlm.lr_pvalue)
@@ -851,7 +864,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #' @return A list with the cell types and their differentially expressed genes
 #' 
 #' @importFrom MAST FromMatrix zlm lrTest
-#' @importFrom reshape2 melt
+#' 
 #' @importFrom magrittr %>%
 #'
 #' @export
