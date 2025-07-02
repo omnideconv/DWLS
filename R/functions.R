@@ -470,7 +470,7 @@ m.auc <- function(data.m, group.v) {
 #' @return A list with the cell types and their differentially expressed genes
 #'
 #' @importFrom MAST FromFlatDF zlm lrTest
-#' @import data.table
+#' @importFrom data.table setnames as.data.table
 #'
 #' @export
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
@@ -512,7 +512,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
         rep(i, length(cells.coord.list2))
       )
       groups <- as.character(groups)
-      counts_dt <- data.table::as.data.table(counts, keep.rownames = "gene")
+      counts_dt <- as.data.table(counts, keep.rownames = "gene")
       melted_counts <- melt(counts_dt, id.vars = "gene", variable.name = "Subject.ID", value.name = "Et")
 
       data_for_MIST <- verbose_wrapper(verbose)(
@@ -564,7 +564,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
       zlm.lr <-
         verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
 
-      tmp <- data.table::as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
+      tmp <- as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
       setnames(tmp, c("primerid", "test.type", "p_value"))
       zlm.lr_pvalue <- tmp
 
@@ -766,8 +766,10 @@ verbose_wrapper <- function(verbose) {
 }
 
 #' A second version of the stat.log2 function that is optimized for higher processing speed
+#' #' @importFrom data.table setnames as.data.table
+#' 
 stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
-  data.m.t <- data.table::data.table(t(data.m))
+  data.m.t <- data.table(t(data.m))
   data.m.t$group <- unlist(group.v)
 
   # for some reason, this next line did not work in the Docker container (I was debugging for 1 day :( )
@@ -777,7 +779,7 @@ stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
   log2.mean.r <- data.m.t %>%
     dplyr::group_by(group) %>%
     dplyr::summarise(dplyr::across(dplyr::everything(), ~ Mean.in.log2space(.x, pseudo.count))) %>%
-    data.table::as.data.table()
+    as.data.table()
 
   log2.mean.r <- t(log2.mean.r)
   colnames(log2.mean.r) <-
@@ -839,7 +841,7 @@ doLrTest <- function(verbose, zlm.output) {
   zlm.lr <-
     verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
 
-   tmp <- data.table::as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
+   tmp <- as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
    setnames(tmp, c("primerid", "test.type", "p_value"))
    zlm.lr_pvalue <- tmp
 
@@ -869,7 +871,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #' @importFrom MAST FromMatrix zlm lrTest
 #'
 #' @importFrom magrittr %>%
-#' @import data.table
+#' @importFrom data.table setnames as.data.table
 #'
 #' @export
 DEAnalysisMASTOptimized <- function(scdata, id, path, verbose = FALSE) {
