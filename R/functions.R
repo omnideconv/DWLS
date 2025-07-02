@@ -29,7 +29,7 @@ solveOLS <- function(S, B, verbose = FALSE) {
 #' @param verbose Whether to produce an output on the console.
 #'
 #' @return A vector with the cell type numbers for the sample
-#' 
+#'
 #' @importFrom quadprog solve.QP
 #'
 #' @export
@@ -512,7 +512,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
         rep(i, length(cells.coord.list2))
       )
       groups <- as.character(groups)
-      counts_dt <- as.data.table(counts, keep.rownames = "gene")
+      counts_dt <- data.table::as.data.table(counts, keep.rownames = "gene")
       melted_counts <- melt(counts_dt, id.vars = "gene", variable.name = "Subject.ID", value.name = "Et")
 
       data_for_MIST <- verbose_wrapper(verbose)(
@@ -563,11 +563,11 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
       }
       zlm.lr <-
         verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
-	    
-      tmp <- as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
+
+      tmp <- data.table::as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
       setnames(tmp, c("primerid", "test.type", "p_value"))
       zlm.lr_pvalue <- tmp
-      
+
       zlm.lr_pvalue <-
         zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
 
@@ -769,16 +769,16 @@ verbose_wrapper <- function(verbose) {
 stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
   data.m.t <- data.table::data.table(t(data.m))
   data.m.t$group <- unlist(group.v)
-  
+
   # for some reason, this next line did not work in the Docker container (I was debugging for 1 day :( )
   #log2.mean.r <- data.m.t[, lapply(.SD, Mean.in.log2space, pseudo.count), by = group]
-  
-  # replaced line above with dplyr (not as efficient as data.table, but still better than original implementation) 
+
+  # replaced line above with dplyr (not as efficient as data.table, but still better than original implementation)
   log2.mean.r <- data.m.t %>%
     dplyr::group_by(group) %>%
     dplyr::summarise(dplyr::across(dplyr::everything(), ~ Mean.in.log2space(.x, pseudo.count))) %>%
     data.table::as.data.table()
-  
+
   log2.mean.r <- t(log2.mean.r)
   colnames(log2.mean.r) <-
     paste("log2.mean.group", log2.mean.r[1, ], sep = "")
@@ -795,8 +795,8 @@ stat.log2.optimized <- function(data.m, group.v, pseudo.count) {
 
 createLrTestTable <- function(i,de, zlm.lr_pvalue) {
 
- de$primerid <- rownames(de)  
-lrTest.table <- merge(zlm.lr_pvalue, de, by = "primerid")	
+ de$primerid <- rownames(de)
+lrTest.table <- merge(zlm.lr_pvalue, de, by = "primerid")
   colnames(lrTest.table) <-
     c(
       "gene",
@@ -838,11 +838,11 @@ doMastZlm <- function(verbose, vbeta.1) {
 doLrTest <- function(verbose, zlm.output) {
   zlm.lr <-
     verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
-	    
-   tmp <- as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
+
+   tmp <- data.table::as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
    setnames(tmp, c("primerid", "test.type", "p_value"))
    zlm.lr_pvalue <- tmp
-	
+
   zlm.lr_pvalue <-
     zlm.lr_pvalue[which(zlm.lr_pvalue$test.type == "hurdle"), ]
   return (zlm.lr_pvalue)
@@ -865,9 +865,9 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #' @param verbose Whether to produce an output on the console.
 #'
 #' @return A list with the cell types and their differentially expressed genes
-#' 
+#'
 #' @importFrom MAST FromMatrix zlm lrTest
-#' 
+#'
 #' @importFrom magrittr %>%
 #' @import data.table
 #'
@@ -1007,7 +1007,7 @@ buildSignatureMatrixMASTOptimized <- function(scdata,
     pvals <- as.numeric(cluster_lrTest.table$p_value)
     pvalue_adjusted <- stats::p.adjust(pvals, method = "fdr")
     cluster_lrTest.table$pvalue_adjusted <- pvalue_adjusted
-	  
+
     DEGenes <-
       cluster_lrTest.table$gene[intersect(
         which(pvalue_adjusted < pval.cutoff),
