@@ -469,10 +469,11 @@ m.auc <- function(data.m, group.v) {
 #'
 #' @return A list with the cell types and their differentially expressed genes
 #'
-#' @importFrom MAST FromFlatDF zlm lrTest
-#' @importFrom data.table setnames as.data.table
-#'
 #' @export
+#'
+#' @importFrom MAST FromFlatDF zlm lrTest
+#' @importFrom data.table as.data.table setnames
+#'
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
   uniqueIds <- unique(id)
   list_lrTest.table <- as.list(rep(0, length(uniqueIds)))
