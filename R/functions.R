@@ -565,7 +565,7 @@ DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
         verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
 
       tmp <- data.table::as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
-      setnames(tmp, c("primerid", "test.type", "p_value"))
+      data.table::setnames(tmp, c("primerid", "test.type", "p_value"))
       zlm.lr_pvalue <- tmp
 
       zlm.lr_pvalue <-
@@ -840,7 +840,7 @@ doLrTest <- function(verbose, zlm.output) {
     verbose_wrapper(verbose)(MAST::lrTest(zlm.output, "Population"))
 
    tmp <- data.table::as.data.table(as.table(zlm.lr[, , "Pr(>Chisq)"]))
-   setnames(tmp, c("primerid", "test.type", "p_value"))
+   data.table::setnames(tmp, c("primerid", "test.type", "p_value"))
    zlm.lr_pvalue <- tmp
 
   zlm.lr_pvalue <-
