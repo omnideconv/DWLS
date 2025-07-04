@@ -472,7 +472,7 @@ m.auc <- function(data.m, group.v) {
 #' @export
 #'
 #' @importFrom MAST FromFlatDF zlm lrTest
-#' @importFrom data.table as.data.table setnames
+#' @import data.table
 #'
 DEAnalysisMAST <- function(scdata, id, path, verbose = FALSE) {
   uniqueIds <- unique(id)
@@ -872,7 +872,7 @@ createDataForMAST <- function(verbose, counts, groups, matrix) {
 #' @importFrom MAST FromMatrix zlm lrTest
 #'
 #' @importFrom magrittr %>%
-#' @importFrom data.table setnames as.data.table
+#' @import data.table 
 #'
 #' @export
 DEAnalysisMASTOptimized <- function(scdata, id, path, verbose = FALSE) {
