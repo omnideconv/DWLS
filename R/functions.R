@@ -656,12 +656,11 @@ buildSignatureMatrixMAST <- function(scdata,
       index <- which(uniqueIds == i)
       cluster_lrTest.table <- list.cluster.table[[index]]
     }
-    pvalue_adjusted <-
-      stats::p.adjust(
-        cluster_lrTest.table[, 3],
-        method = "fdr",
-        n = length(cluster_lrTest.table[, 3])
-      )
+    pvalue_adjusted <- stats::p.adjust(
+      cluster_lrTest.table[[3]], 
+      method = "fdr",
+      n = length(cluster_lrTest.table[[3]])
+    )
     cluster_lrTest.table <-
       cbind(cluster_lrTest.table, pvalue_adjusted)
     DEGenes <-
